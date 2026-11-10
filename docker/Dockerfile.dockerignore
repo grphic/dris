@@ -1,0 +1,11 @@
+# Alles wat niet nodig is voor de build, en vooral: geen keys in de image.
+**/.env
+**/.env.*
+.git
+.DS_Store
+node_modules
+dist
+ASSETS
+scripts
+deploy
+docker/*.tar.gz

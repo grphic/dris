@@ -1,0 +1,10 @@
+node_modules
+dist
+.env.local
+.env
+.DS_Store
+docker/.env
+docker/*.tar.gz
+VERSION
+ASSETS
+*.tar.gz

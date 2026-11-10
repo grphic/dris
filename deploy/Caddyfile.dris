@@ -1,0 +1,34 @@
+# DRIS: zet dit blok binnen het site-blok van de interne host in /etc/caddy/Caddyfile
+# (bijv. het blok voor http://192.168.80.20 of de interne hostnaam).
+#
+# De NS API-key staat NIET in deze file maar in een environment-variabele van de Caddy-service:
+#   /etc/caddy/dris.env        →  NS_API_KEY=...            (chmod 600, eigenaar root)
+#   /etc/systemd/system/caddy.service.d/dris.conf:
+#       [Service]
+#       EnvironmentFile=/etc/caddy/dris.env
+#   daarna: systemctl daemon-reload && systemctl restart caddy
+
+redir /dris /dris/ 308
+
+# API-proxy: /dris/api/ns/<pad> → https://gateway.apiportal.ns.nl/<pad>, key wordt hier toegevoegd.
+# Alleen de NS-API's die DRIS gebruikt zijn toegestaan, zodat dit geen open proxy is.
+handle_path /dris/api/ns/* {
+	@allowed path /reisinformatie-api/* /virtual-train-api/* /nsapp-stations/* /disruptions/*
+	handle @allowed {
+		reverse_proxy https://gateway.apiportal.ns.nl {
+			header_up Host gateway.apiportal.ns.nl
+			header_up Ocp-Apim-Subscription-Key {env.NS_API_KEY}
+			header_up -Cookie
+			header_up -Authorization
+		}
+	}
+	respond 404
+}
+
+# Statische bestanden: /var/www/dris (index.html en info/index.html)
+handle /dris/* {
+	root * /var/www
+	header /dris/assets/* Cache-Control "public, max-age=31536000, immutable"
+	header /dris/fonts/* Cache-Control "public, max-age=2592000"
+	file_server
+}

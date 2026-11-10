@@ -1,0 +1,123 @@
+@font-face {
+  font-family: 'NS Sans';
+  src: url('/fonts/nssans-regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: block;
+}
+@font-face {
+  font-family: 'NS Sans';
+  src: url('/fonts/nssans-italic.ttf') format('truetype');
+  font-weight: 400;
+  font-style: italic;
+  font-display: block;
+}
+@font-face {
+  font-family: 'NS Sans';
+  src: url('/fonts/nssans-demi.ttf') format('truetype');
+  font-weight: 600;
+  font-style: normal;
+  font-display: block;
+}
+@font-face {
+  font-family: 'NS Sans';
+  src: url('/fonts/nssans-bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: block;
+}
+@font-face {
+  font-family: 'NS Sans';
+  src: url('/fonts/nssans-bolditalic.ttf') format('truetype');
+  font-weight: 700;
+  font-style: italic;
+  font-display: block;
+}
+
+/*
+ * Colours. Dark mode is measured from photos of the current boards (2025+):
+ * dark navy screen, NS-blue housing, lighter blue "next train" bar, yellow warnings.
+ * Light mode follows the older white layout.
+ */
+:root,
+:root[data-theme='dark'] {
+  --housing: #0b3aa8;
+  --housing-edge: #082c86;
+  --sign-bg: #ffffff;
+  --sign-fg: #0b2a8f;
+  --screen-bg: #0c1d62;
+  --screen-bg-2: #0f2678;
+  --screen-fg: #eef0ff;
+  --screen-muted: #c9cdf2;
+  --struck: #a6b4ee; /* struck-through destination: softer, bluer than the white text (measured from photo) */
+  --bar-bg: #3557c9;
+  --bar-fg: #ffffff;
+  --info-bg: #2a48b4;
+  --rule: rgba(214, 222, 255, 0.75);
+  --warn: #ffd23f;
+  --ov-warn: #ff9f1c; /* overview: delays and warnings are orange (photo) */
+  --ov-stripe: rgba(84, 116, 236, 0.38); /* overview: every other row lighter (photo) */
+  --delay: #ff4a4a; /* delay (+8): red, bright enough to read on the dark blue */
+  --train: #c9cdf2;
+  --clock-panel: #e8e9ee;
+}
+
+:root[data-theme='light'] {
+  --housing: #0b3aa8;
+  --housing-edge: #082c86;
+  --sign-bg: #ffffff;
+  --sign-fg: #0b2a8f;
+  --screen-bg: #f3f4fb;
+  --screen-bg-2: #eceef8;
+  --screen-fg: #0a1f8a;
+  --screen-muted: #24359a;
+  --struck: #8e98cc;
+  --bar-bg: #0a1f8a;
+  --bar-fg: #ffffff;
+  --info-bg: #2742a8;
+  --rule: #0a1f8a;
+  --warn: #c8102e;
+  --delay: #c8102e;
+  --ov-warn: #c8102e;
+  --ov-stripe: rgba(10, 31, 138, 0.07);
+  --train: #0a1f8a;
+  --clock-panel: #e8e9ee;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+}
+
+body {
+  font-family: 'NS Sans', system-ui, sans-serif;
+}
+
+/*
+ * There is no demi italic in NS Sans. For English texts on the board we use the demi
+ * (and bold) uprights under a separate family name without italic faces, so the browser
+ * slants the matching weight itself instead of falling back to the heavier bold italic.
+ */
+@font-face {
+  font-family: 'NS Sans Slanted';
+  src: url('/fonts/nssans-regular.ttf') format('truetype');
+  font-weight: 400;
+  font-display: block;
+}
+@font-face {
+  font-family: 'NS Sans Slanted';
+  src: url('/fonts/nssans-demi.ttf') format('truetype');
+  font-weight: 600;
+  font-display: block;
+}
+@font-face {
+  font-family: 'NS Sans Slanted';
+  src: url('/fonts/nssans-bold.ttf') format('truetype');
+  font-weight: 700;
+  font-display: block;
+}

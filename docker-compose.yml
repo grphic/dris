@@ -1,0 +1,18 @@
+# DRIS voor Portainer (Stacks → Add stack → Repository).
+# Portainer bouwt de image zelf uit deze repo; de instellingen vul je in bij "Environment variables":
+#   NS_API_KEY   (verplicht)  je NS API-key (Primary key van https://apiportal.ns.nl, product Ns-App)
+#   DRIS_PORT    (optioneel)  poort op de host, standaard 8080
+#   DRIS_START   (optioneel)  waar / naartoe gaat, standaard /dris/info/ (de instellingenpagina).
+#                             Bijv. een link die je op /dris/info/ hebt gemaakt, zoals /dris/?station=UT
+services:
+  dris:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    image: dris:latest
+    environment:
+      NS_API_KEY: ${NS_API_KEY:?Vul NS_API_KEY in bij de environment variables}
+      DRIS_START: ${DRIS_START:-/dris/info/}
+    ports:
+      - '${DRIS_PORT:-8080}:80'
+    restart: unless-stopped

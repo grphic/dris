@@ -1,0 +1,36 @@
+{
+	admin off
+	auto_https off
+}
+
+:80 {
+	encode gzip
+
+	# De startpagina: het station dat je bij de setup koos (of anders de instellingen).
+	redir / {$DRIS_START:/dris/info/} 302
+	redir /dris /dris/ 308
+
+	# API-proxy: /dris/api/ns/<pad> → https://gateway.apiportal.ns.nl/<pad>, de key wordt hier toegevoegd.
+	# Alleen de NS-API's die DRIS gebruikt zijn toegestaan, zodat dit geen open proxy is.
+	handle_path /dris/api/ns/* {
+		@allowed path /reisinformatie-api/* /virtual-train-api/* /nsapp-stations/* /disruptions/*
+		handle @allowed {
+			reverse_proxy https://gateway.apiportal.ns.nl {
+				header_up Host gateway.apiportal.ns.nl
+				header_up Ocp-Apim-Subscription-Key {env.NS_API_KEY}
+				header_up -Cookie
+				header_up -Authorization
+			}
+		}
+		respond 404
+	}
+
+	handle /dris/* {
+		root * /srv
+		header /dris/assets/* Cache-Control "public, max-age=31536000, immutable"
+		header /dris/fonts/* Cache-Control "public, max-age=2592000"
+		file_server
+	}
+
+	respond 404
+}

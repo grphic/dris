@@ -1,0 +1,11 @@
+# Start met  ./setup.sh  (vraagt de API-key en je eerste station, en start daarna deze container).
+# Zelf starten/stoppen:  docker compose up -d --build   /   docker compose down
+services:
+  dris:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    env_file: .env
+    ports:
+      - '${DRIS_PORT:-8080}:80'
+    restart: unless-stopped
