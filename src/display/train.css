@@ -1,0 +1,631 @@
+/*
+ * The screen inside the train (OBIS, in VIRM, ICM and DDZ). Measured on photos of the screens and
+ * converted to a 1280 × 720 canvas: blue title bar, white panel with the next stop, blue lower half with
+ * the rest of the route, the connections or "Eindpunt van deze trein".
+ */
+.train-screen {
+  --ts-blue: #1b3fc2;
+  --ts-blue-dark: #1636ad;
+  --ts-blue-light: #2c56d6;
+  --ts-ink: #1a3cb8;
+  --ts-label: #3a63cc;
+  --ts-green: #14a83c;
+  --ts-red: #e0182d;
+  --ts-white: #f6f7fb;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: grid;
+  grid-template-rows: 82px 292px 1fr;
+  grid-template-columns: minmax(0, 1fr);
+  overflow: hidden;
+  font-family: 'NS Sans', system-ui, sans-serif;
+  background: var(--ts-blue);
+  color: #fff;
+}
+
+/* :where() keeps this reset at zero specificity, so the paddings and margins below win. */
+:where(.train-screen) :where(p, ul) {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* ---------- Title bar ---------- */
+
+.ts-head {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 0 34px 0 28px;
+  background: var(--ts-blue-dark);
+  font-size: 42px;
+  line-height: 1;
+  white-space: nowrap;
+}
+.ts-logo {
+  width: 80px;
+  flex: none;
+  color: #fff;
+}
+.ts-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ts-title b {
+  font-weight: 700;
+}
+.ts-product {
+  font-style: italic;
+  margin-right: 4px;
+}
+.ts-clock {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- White panel: the next stop ---------- */
+
+.ts-panel {
+  background: var(--ts-white);
+  color: var(--ts-ink);
+  padding: 30px 30px 0 26px;
+  display: flex;
+  flex-direction: column;
+  white-space: nowrap;
+}
+.ts-label {
+  font-size: 50px;
+  line-height: 1.1;
+  color: var(--ts-label);
+}
+.ts-next {
+  margin-top: 26px;
+  font-size: 80px;
+  line-height: 1;
+  font-weight: 700;
+  display: flex;
+  gap: 50px;
+  overflow: hidden;
+}
+.ts-next-time {
+  font-variant-numeric: tabular-nums;
+}
+.ts-next-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ts-status {
+  margin-top: 14px;
+  font-size: 44px;
+  line-height: 1.1;
+  font-weight: 700;
+  display: flex;
+  justify-content: space-between;
+}
+.ts-ontime {
+  color: var(--ts-green);
+}
+.ts-late {
+  color: var(--ts-red);
+}
+.ts-track {
+  font-weight: 400;
+  color: var(--ts-ink);
+}
+.ts-track-n {
+  display: inline-block;
+  min-width: 2.2em;
+  margin-left: 0.6em;
+  text-align: left;
+}
+
+/* ---------- Lower half ---------- */
+
+.ts-lower {
+  position: relative;
+  /* The screens are a little lighter to the right (backlight), as in every photo. */
+  background: radial-gradient(120% 140% at 85% 30%, var(--ts-blue-light) 0%, var(--ts-blue) 55%, var(--ts-blue-dark) 100%);
+  white-space: nowrap;
+}
+.ts-note {
+  padding: 18px 26px 0;
+  font-size: 40px;
+  line-height: 1.1;
+}
+
+/* The route: a white line from the top edge down to the last stop, a dot at every stop. */
+.ts-route {
+  position: relative;
+  height: 100%;
+  font-size: 56px;
+  font-weight: 700;
+  line-height: 1;
+}
+.ts-route::before {
+  content: '';
+  position: absolute;
+  left: 226px;
+  top: 0;
+  width: 20px;
+  height: calc(60px + (var(--rows) - 1) * 108px);
+  background: #fff;
+}
+.ts-route li {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 108px;
+  display: flex;
+  align-items: center;
+}
+.ts-route li:nth-child(1) {
+  top: 6px;
+}
+.ts-route li:nth-child(2) {
+  top: 114px;
+}
+.ts-route li:nth-child(3) {
+  top: 222px;
+}
+.ts-route .ts-time {
+  width: 196px;
+  padding-left: 26px;
+  font-variant-numeric: tabular-nums;
+}
+.ts-dot {
+  position: absolute;
+  left: 236px;
+  top: 50%;
+  width: 52px;
+  height: 52px;
+  margin: -26px 0 0 -26px;
+  border-radius: 50%;
+  background: #fff;
+}
+.ts-route li.last .ts-dot {
+  width: 60px;
+  height: 60px;
+  margin: -30px 0 0 -30px;
+}
+.ts-stop {
+  margin-left: 86px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Connections: time, direction, track, product. */
+.ts-transfers {
+  margin-top: 14px;
+  font-size: 52px;
+  font-weight: 700;
+  line-height: 1;
+}
+.ts-transfers li {
+  display: grid;
+  grid-template-columns: 196px 1fr 110px 110px;
+  align-items: center;
+  height: 84px;
+  padding: 0 30px 0 26px;
+}
+.ts-transfers .ts-time {
+  font-variant-numeric: tabular-nums;
+}
+.ts-dir {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ts-tr-track {
+  text-align: right;
+  font-weight: 400;
+}
+.ts-tr-product {
+  text-align: right;
+  font-style: italic;
+  font-size: 44px;
+}
+
+/* ---------- Housing: black bezel with a small LED, as on the wall of the train ---------- */
+
+.train-housing {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(180deg, #232427 0%, #141517 100%);
+  border-radius: 18px;
+  box-shadow: inset 0 0 0 2px #2e3034, inset 0 2px 0 3px rgba(255, 255, 255, 0.06);
+}
+.train-housing-screen {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  box-shadow: 0 0 0 3px #0a0a0b;
+}
+.train-housing-led {
+  position: absolute;
+  left: 50%;
+  bottom: 18px;
+  width: 8px;
+  height: 8px;
+  margin-left: -4px;
+  border-radius: 50%;
+  background: #3a3c40;
+}
+
+/* Silver housing of the SLT screens. */
+.train-housing.slt {
+  border-radius: 10px;
+  background: linear-gradient(160deg, #d9dcdf 0%, #b9bdc2 45%, #a4a9ae 100%);
+  box-shadow: inset 0 0 0 2px #c9ccd0, inset 0 3px 0 2px rgba(255, 255, 255, 0.5), inset 0 -3px 0 1px rgba(0, 0, 0, 0.12);
+}
+.train-housing.slt .train-housing-screen {
+  box-shadow: 0 0 0 4px #2b2e33;
+}
+
+/* ---------- SLT (Sprinter Lighttrain): 4:3, measured on a photo of the screen ---------- */
+
+.slt-screen {
+  /* Sampled from the photos: dark navy title bar, pale grey-blue body, brighter blue text and foot. */
+  --slt-blue: #14196b;
+  --slt-foot: #1f3fc0;
+  --slt-ink: #2a3fa8;
+  --slt-paper: #dfe6ea;
+  width: 100%;
+  height: 100%;
+  display: grid;
+  grid-template-rows: 92px 1fr 76px;
+  grid-template-columns: minmax(0, 1fr);
+  overflow: hidden;
+  font-family: Arial, 'Helvetica Neue', Helvetica, sans-serif;
+  background: var(--slt-paper);
+  color: var(--slt-ink);
+  white-space: nowrap;
+}
+:where(.slt-screen) :where(p) {
+  margin: 0;
+}
+.slt-head {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  padding: 0 28px 0 32px;
+  background: var(--slt-blue);
+  color: #fff;
+  font-size: 40px;
+}
+.slt-logo {
+  width: 74px;
+  flex: none;
+}
+.slt-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.slt-title small {
+  font-size: 26px;
+}
+.slt-clock {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 34px;
+  font-variant-numeric: tabular-nums;
+}
+.slt-clock-icon {
+  width: 34px;
+  height: 34px;
+}
+.slt-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 92px;
+  padding: 0 40px 40px;
+}
+.slt-label {
+  font-size: 44px;
+}
+.slt-next {
+  display: flex;
+  align-items: baseline;
+  gap: 30px;
+  max-width: 100%;
+  overflow: hidden;
+}
+.slt-time {
+  font-size: 50px;
+  font-variant-numeric: tabular-nums;
+}
+.slt-next b {
+  font-size: 66px;
+  font-weight: 400;
+  -webkit-text-stroke: 0.6px currentColor;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.slt-foot {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0 30px;
+  background: linear-gradient(100deg, var(--slt-foot) 0%, #2f55d6 45%, var(--slt-foot) 100%);
+  color: #fff;
+  font-size: 32px;
+}
+
+/* overflow: hidden clips at the padding box, and with line-height 1 that cuts off the descenders
+   (g, j, p, y): leave room below the line without moving anything, as in the overview. */
+.ts-title,
+.ts-next,
+.ts-next-name,
+.ts-stop,
+.ts-dir,
+.slt-title,
+.slt-next,
+.slt-next b {
+  padding-bottom: 0.18em;
+  margin-bottom: -0.18em;
+}
+
+/* ---------- The new screens (SNG, FLIRT, ICNG): 16:9, measured on photos ---------- */
+
+.nw-screen {
+  --nw-navy: #1f2a7c;
+  --nw-ink: #1d2466;
+  --nw-band: #eef0f6;
+  --nw-paper: #dde1ee;
+  --nw-red: #d4202c;
+  --nw-line: 4px;
+  /* Left edge of the text, and the middle of the route line. */
+  --nw-x: 40px;
+  --nw-ring-x: 57px;
+  /* Stop names and labels are indented, the ring and the route line run in the margin. */
+  --nw-indent: 54px;
+  /* Size of the next stop's name. The digits of the time are exactly as tall as its lowercase letters:
+     NS Sans Bold has an x-height of 0.52 em and digits of 0.71 em (measured on the font). */
+  --nw-name-size: 100px;
+  --nw-time-size: calc(var(--nw-name-size) * 0.52 / 0.71);
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: grid;
+  grid-template-rows: 186px 200px 1fr;
+  grid-template-columns: minmax(0, 1fr);
+  overflow: hidden;
+  font-family: 'NS Sans', system-ui, sans-serif;
+  background: var(--nw-paper);
+  color: var(--nw-ink);
+  white-space: nowrap;
+}
+:where(.nw-screen) :where(p, ul) {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.nw-head {
+  position: relative;
+  padding: 18px 40px 0 var(--nw-x);
+  background: linear-gradient(100deg, #1b2470 0%, var(--nw-navy) 55%, #26339a 100%);
+  color: #fff;
+}
+.nw-product {
+  font-size: 42px;
+  line-height: 1.1;
+}
+.nw-dest {
+  font-size: 100px;
+  line-height: 1.05;
+  font-weight: 700;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.nw-clock {
+  position: absolute;
+  top: 18px;
+  right: 40px;
+  font-size: 42px;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.nw-band {
+  position: relative;
+  /* Two rows (labels, values) and two columns (where, when): the labels share their top and the name and
+     the time share their baseline, as on the photos. */
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: auto auto;
+  column-gap: 40px;
+  align-items: baseline;
+  align-content: start;
+  padding: 18px 40px 0 calc(var(--nw-x) + var(--nw-indent));
+  background: var(--nw-band);
+}
+.nw-where,
+.nw-when {
+  display: contents;
+}
+.nw-where > .nw-label {
+  grid-area: 1 / 1;
+}
+.nw-name {
+  grid-area: 2 / 1;
+  min-width: 0;
+}
+.nw-when > .nw-label {
+  grid-area: 1 / 2;
+}
+.nw-time {
+  grid-area: 2 / 2;
+}
+.nw-label {
+  font-size: 42px;
+  line-height: 1.1;
+}
+.nw-name {
+  margin-top: 8px;
+  text-overflow: ellipsis;
+  font-size: var(--nw-name-size);
+  line-height: 1.05;
+  font-weight: 700;
+  overflow: hidden;
+}
+/* The ring before the name of the stop; the route line runs down (more stops) or up (last stop) from it. */
+.nw-ring {
+  position: absolute;
+  left: calc(var(--nw-ring-x) - 17px);
+  /* Level with the lowercase letters of the name. */
+  top: 104px;
+  box-sizing: border-box;
+  width: 34px;
+  height: 34px;
+  border: var(--nw-line) solid currentColor;
+  border-radius: 50%;
+}
+.nw-band.down::after,
+.nw-band.up::after {
+  content: '';
+  position: absolute;
+  left: var(--nw-ring-x);
+  width: var(--nw-line);
+  margin-left: calc(var(--nw-line) / -2);
+  background: var(--nw-ink);
+}
+.nw-band.down::after {
+  top: 138px;
+  bottom: -400px;
+  z-index: 1;
+}
+.nw-band.up::after {
+  top: 0;
+  height: 104px;
+}
+
+.nw-time {
+  display: flex;
+  align-items: baseline;
+  gap: 28px;
+  margin-top: 8px;
+  font-size: var(--nw-time-size);
+  line-height: 1.1;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.nw-delay {
+  margin-left: 4px;
+  font-size: 0.62em;
+  color: var(--nw-red);
+}
+.nw-track {
+  /* Side of the square; the number takes 3/4 of it. */
+  --box: 1.2em;
+  position: relative;
+  flex: none;
+  display: inline-block;
+  box-sizing: border-box;
+  width: var(--box);
+  height: var(--box);
+  border: 4px solid var(--nw-ink);
+  font-size: calc(var(--box) * 0.75);
+  line-height: 1;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+/* The number is out of the flow, so the box has no text baseline of its own: in a baseline row its bottom
+   edge sits on the baseline. */
+.nw-track > span {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+.nw-track::before {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  width: calc(var(--box) * 0.22);
+  height: calc(var(--box) * 0.22);
+  background: var(--nw-ink);
+}
+/* Next to the time: as tall as the ascenders (d, l, h) of the next stop's name, from its baseline up.
+   NS Sans Bold: ascenders 0.756 em (measured on the font). */
+.nw-time .nw-track {
+  --box: calc(var(--nw-name-size) * 0.756);
+}
+
+.nw-lower {
+  position: relative;
+  padding: 22px 40px 0 var(--nw-x);
+}
+.nw-route {
+  padding-left: var(--nw-indent);
+  font-size: 56px;
+  line-height: 1.32;
+}
+.nw-note {
+  display: flex;
+  align-items: center;
+  font-size: 50px;
+  line-height: 1.2;
+}
+/* The triangle sits in the margin, centred under the ring; the text starts where the stop names do. */
+.nw-warn {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  margin-left: calc(var(--nw-ring-x) - var(--nw-x) - 22px);
+  margin-right: calc(var(--nw-indent) - (var(--nw-ring-x) - var(--nw-x)) - 22px);
+}
+.nw-sub {
+  font-size: 34px;
+  line-height: 1.2;
+}
+.nw-transfers li {
+  display: grid;
+  grid-template-columns: 250px minmax(0, auto) 1fr 90px;
+  align-items: center;
+  column-gap: 22px;
+  height: 92px;
+  border-bottom: 2px solid rgba(29, 36, 102, 0.15);
+  font-size: 56px;
+  line-height: 1.1;
+}
+.nw-tr-time {
+  font-variant-numeric: tabular-nums;
+}
+.nw-tr-time .nw-delay {
+  font-size: 40px;
+}
+.nw-tr-dir {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.nw-tr-product {
+  font-size: 38px;
+  color: #4a5182;
+}
+.nw-transfers .nw-track {
+  --box: 60px;
+  justify-self: end;
+  border-width: 3px;
+}
+
+.train-housing.modern {
+  border-radius: 12px;
+  background: linear-gradient(180deg, #1c1d20 0%, #0f1012 100%);
+  box-shadow: 0 0 0 10px #8d9196, 0 0 0 12px #6d7176, inset 0 0 0 2px #2a2c30;
+}
+
+.nw-dest,
+.nw-name,
+.nw-tr-dir {
+  padding-bottom: 0.18em;
+  margin-bottom: -0.18em;
+}

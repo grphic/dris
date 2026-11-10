@@ -1,13 +1,16 @@
 export type Theme = 'dark' | 'light'
 /** Screen only, screen with track signs, or screen with track signs and clock. */
 export type Frame = 'screen' | 'signs' | 'board'
-/** One or two trains for a track, or the departures overview for the whole station. */
-export type Layout = 'single' | 'double' | 'overview'
+/** One or two trains for a track, the departures overview for the whole station, or the screen inside a train. */
+export type Layout = 'single' | 'double' | 'overview' | 'train'
 export type Lang = 'alt' | 'nl' | 'en'
 export type Side = 'left' | 'right'
 /** Clock panel: a square white panel with a large clock, or a narrower grey one with a smaller clock
  *  in the middle or at the top. */
 export type ClockStyle = 'square' | 'center' | 'top'
+/** The screen inside the train: chosen by the rolling stock (auto), or always OBIS (VIRM, ICM, DDZ), SLT,
+ *  or the new style (SNG, FLIRT, ICNG). */
+export type TrainScreenKind = 'auto' | 'obis' | 'slt' | 'modern'
 
 export interface Settings {
   station: string
@@ -26,6 +29,9 @@ export interface Settings {
   screens: number
   /** Overview: show only this screen (1-based) of the row, e.g. one per TV; 0 = all screens side by side. */
   screen: number
+  /** In the train: follow this train number. Empty: follow the next train from station/track. */
+  train: string
+  trainScreen: TrainScreenKind
   mock: boolean
 }
 
@@ -42,6 +48,8 @@ export const DEFAULTS: Settings = {
   clock: 'center',
   screens: 1,
   screen: 0,
+  train: '',
+  trainScreen: 'auto',
   mock: false,
 }
 
@@ -70,12 +78,14 @@ export function readSettings(search: string): Settings {
     track2: p.get('spoor2') ?? '',
     theme: pick(p.get('thema'), ['dark', 'light'] as const, DEFAULTS.theme),
     frame: pick(p.get('weergave'), ['screen', 'signs', 'board'] as const, DEFAULTS.frame),
-    layout: pick(p.get('indeling'), ['single', 'double', 'overview'] as const, DEFAULTS.layout),
+    layout: pick(p.get('indeling'), ['single', 'double', 'overview', 'train'] as const, DEFAULTS.layout),
     lang: pick(p.get('taal'), ['alt', 'nl', 'en'] as const, DEFAULTS.lang),
     side: pick(p.get('bordzijde'), ['left', 'right'] as const, DEFAULTS.side),
     clock: readClock(p),
     screens: Math.min(3, Math.max(1, Number(p.get('schermen')) || 1)),
     screen: Number(p.get('scherm')) || 0,
+    train: (p.get('trein') ?? '').replace(/\D/g, ''),
+    trainScreen: pick(p.get('treinscherm'), ['auto', 'obis', 'slt', 'modern'] as const, DEFAULTS.trainScreen),
     mock: p.get('demo') === '1',
   }
 }
@@ -84,19 +94,24 @@ export function readSettings(search: string): Settings {
 export function toQuery(s: Settings): string {
   const p = new URLSearchParams()
   const set = (key: string, value: string, fallback: string) => value !== fallback && p.set(key, value)
-  if (s.station) p.set('station', s.station)
-  if (s.layout !== 'overview' && s.track) p.set('spoor', s.track)
+  const byNumber = s.layout === 'train' && Boolean(s.train)
+  if (byNumber) p.set('trein', s.train)
+  if (s.station && !byNumber) p.set('station', s.station)
+  if (s.layout !== 'overview' && s.track && !byNumber) p.set('spoor', s.track)
   if (s.layout === 'double' && s.track2 && s.track2 !== s.track) p.set('spoor2', s.track2)
   set('indeling', s.layout, DEFAULTS.layout)
   if (s.layout === 'overview') {
     set('schermen', String(s.screens), '1')
     if (s.screen > 0 && s.screen <= s.screens) p.set('scherm', String(s.screen))
   }
-  // The overview has no track signs: 'signs' and 'board' both mean "in the housing" there.
-  set('weergave', s.layout === 'overview' && s.frame === 'signs' ? 'board' : s.frame, DEFAULTS.frame)
-  set('thema', s.theme, DEFAULTS.theme)
+  // The overview and the train screen have no track signs: 'signs' and 'board' both mean "in the housing" there.
+  const housingOnly = s.layout === 'overview' || s.layout === 'train'
+  set('weergave', housingOnly && s.frame === 'signs' ? 'board' : s.frame, DEFAULTS.frame)
+  // The train screen has one colour scheme, but two kinds of screen.
+  if (s.layout !== 'train') set('thema', s.theme, DEFAULTS.theme)
+  else set('treinscherm', s.trainScreen, DEFAULTS.trainScreen)
   set('taal', s.lang, DEFAULTS.lang)
-  const signs = s.frame !== 'screen' && s.layout !== 'overview'
+  const signs = s.frame !== 'screen' && !housingOnly
   if (signs) set('bordzijde', s.side, DEFAULTS.side)
   if (signs && s.frame === 'board') set('klok', CLOCK_PARAM[s.clock], CLOCK_PARAM[DEFAULTS.clock])
   if (s.mock) p.set('demo', '1')

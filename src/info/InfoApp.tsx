@@ -4,6 +4,8 @@ import { DEFAULTS, readSettings, toQuery, type Settings } from '../lib/settings'
 import type { Station } from '../lib/types'
 import { NsLogo } from '../display/Product'
 import { boardSize, overviewSize } from '../lib/board'
+import { screenKind, trainSize } from '../display/TrainScreen'
+import { clearRide, readRide, type Ride } from '../lib/ride'
 
 const SESSION_KEY = 'dris.settings'
 const BASE = import.meta.env.BASE_URL
@@ -153,6 +155,21 @@ const ICONS = {
       <circle cx="56" cy="20" r="5.5" className="i-clock" />
     </Svg>
   ),
+  train: (
+    <Svg>
+      <rect x="1" y="1" width="62" height="38" rx="3" className="i-screen" />
+      <rect x="1" y="1" width="62" height="7" className="i-bar" />
+      <rect x="1" y="8" width="62" height="13" fill="#fff" />
+      <rect x="6" y="11" width="34" height="6" rx="1" className="i-strong" />
+      <rect x="16" y="21" width="2.5" height="14" fill="#fff" />
+      {[25, 31].map((y) => (
+        <g key={y}>
+          <circle cx="17.25" cy={y} r="2.4" fill="#fff" />
+          <rect x="23" y={y - 1.5} width="22" height="3" rx="1" fill="#fff" />
+        </g>
+      ))}
+    </Svg>
+  ),
   housing: (
     <Svg>
       <rect x="6" y="5" width="52" height="30" rx="2" className="i-housing" />
@@ -229,7 +246,11 @@ function TrackPicker({
 }
 
 /** Shape of the preview: the board's fixed proportions, or 16:9 for a single bare screen. */
-function previewShape(s: Settings) {
+function previewShape(s: Settings, ride: Ride | null) {
+  if (s.layout === 'train') {
+    const { width, height } = trainSize(s.frame !== 'screen', screenKind(s.trainScreen, ride?.material))
+    return { aspectRatio: `${width} / ${height}` }
+  }
   if (s.layout === 'overview' && s.frame === 'screen') {
     const { width, height } = overviewSize(s.screens)
     return { aspectRatio: `${width} / ${height}` }
@@ -300,7 +321,44 @@ export function InfoApp() {
   }
 
   const overview = s.layout === 'overview'
-  const ready = Boolean((s.station || s.mock) && (s.track || overview))
+  const train = s.layout === 'train'
+  // In the train: follow the next train from the station, or one train number.
+  const [trainMode, setTrainMode] = useState<'station' | 'number'>(s.train ? 'number' : 'station')
+  // Travelling along: where the train in the preview is now (written by the train screen, see ride.ts).
+  const [ride, setRide] = useState<Ride | null>(null)
+  useEffect(() => {
+    if (!train || s.mock) {
+      setRide(null)
+      return
+    }
+    const tick = () => setRide(readRide(s))
+    tick()
+    const id = window.setInterval(tick, 2000)
+    return () => clearInterval(id)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [train, s.mock, s.station, s.track, s.train])
+
+  /** Leaving the train screen for a station layout: get off where the train is now, as if you changed trains there. */
+  const chooseLayout = (layout: Settings['layout']) => {
+    const r = train && layout !== 'train' && !s.mock ? readRide(s) : null
+    if (!r || r.code === s.station) return update({ layout })
+    const st = stations.find((x) => x.code === r.code)
+    const options = trackOptions(st?.tracks ?? [])
+    const name = st?.name ?? r.name
+    clearRide()
+    setQuery(name)
+    update({
+      layout,
+      station: r.code,
+      stationName: name,
+      track: options.includes(r.track) ? r.track : (options[0] ?? ''),
+      track2: '',
+    })
+  }
+
+  const ready = train
+    ? Boolean(s.mock || (trainMode === 'number' ? s.train : s.station))
+    : Boolean((s.station || s.mock) && (s.track || overview))
   const query_ = toQuery(s)
   const url = `${BASE}?${query_}`
   const absoluteUrl = new URL(url, window.location.href).toString()
@@ -312,8 +370,12 @@ export function InfoApp() {
 
   // Summary above the preview, e.g. "Utrecht Centraal · spoor 8 en 9".
   const summary = [
-    s.mock ? 'Demodata' : station?.name || s.stationName || 'Geen station',
-    overview ? `overzicht${s.screens > 1 ? `, ${s.screens} schermen` : ''}` : s.track && `spoor ${s.track}${twoTracks ? ` en ${s.track2}` : ''}`,
+    s.mock ? 'Demodata' : train && s.train ? `trein ${s.train}` : station?.name || s.stationName || 'Geen station',
+    train
+      ? s.train || s.mock
+        ? 'in de trein'
+        : `in de trein${s.track ? ` vanaf spoor ${s.track}` : ''}`
+      : overview ? `overzicht${s.screens > 1 ? `, ${s.screens} schermen` : ''}` : s.track && `spoor ${s.track}${twoTracks ? ` en ${s.track2}` : ''}`,
   ]
     .filter(Boolean)
     .join(' · ')
@@ -379,15 +441,92 @@ export function InfoApp() {
             <Cards
               label="Indeling"
               value={s.layout}
-              onChange={(layout) => update({ layout })}
+              onChange={chooseLayout}
               options={[
                 { value: 'single', title: 'Eén trein', icon: ICONS.single },
                 { value: 'double', title: 'Twee treinen', icon: ICONS.double },
                 { value: 'overview', title: 'Overzicht', icon: ICONS.overview },
+                { value: 'train', title: 'In de trein', icon: ICONS.train },
               ]}
             />
-            {!overview && tracks.length === 0 && !s.track && <p className="hint">Kies eerst een station, dan verschijnen hier de sporen.</p>}
-            {!overview && (tracks.length > 0 || s.track) && (
+            {train && (
+              <>
+                <Segmented
+                  label="Welke trein?"
+                  value={trainMode}
+                  options={[
+                    ['station', 'Vanaf dit station'],
+                    ['number', 'Treinnummer'],
+                  ]}
+                  onChange={(mode) => {
+                    setTrainMode(mode)
+                    if (mode === 'station') update({ train: '' })
+                  }}
+                />
+                {trainMode === 'number' ? (
+                  <div className="setting">
+                    <span className="setting-label">Treinnummer</span>
+                    <input
+                      className="text-input"
+                      inputMode="numeric"
+                      placeholder="bijv. 1758"
+                      value={s.train}
+                      onChange={(e) => update({ train: e.target.value.replace(/\D/g, '') })}
+                    />
+                  </div>
+                ) : tracks.length > 0 || s.track ? (
+                  <TrackPicker label="Spoor" tracks={tracks} value={s.track} onChange={(track) => update({ track })} sameOption="Elk spoor" />
+                ) : (
+                  <p className="hint">Kies eerst een station, dan verschijnen hier de sporen.</p>
+                )}
+                <Segmented
+                  label="Scherm"
+                  value={s.trainScreen}
+                  options={[
+                    ['auto', 'Automatisch'],
+                    ['obis', 'Intercity (OBIS)'],
+                    ['slt', 'SLT'],
+                    ['modern', 'Nieuw (SNG, FLIRT, ICNG)'],
+                  ]}
+                  onChange={(trainScreen) => update({ trainScreen })}
+                />
+                {ride && (
+                  <p className="ride">
+                    <b>
+                      {ride.product} {ride.number}
+                    </b>{' '}
+                    naar {ride.destination}
+                    {ride.material && <span className="ride-material">{ride.material}</span>}
+                    <br />
+                    {ride.code === s.station && !s.train ? 'Staat nog in' : 'Nu bij of op weg naar'} <b>{ride.name}</b>
+                    {ride.track && `, spoor ${ride.track}`}
+                    {trainMode === 'station' && (
+                      <button
+                        type="button"
+                        className="btn small ride-follow"
+                        onClick={() => {
+                          // Lock on to this train by its number: the screen stays with it to the end of the trip,
+                          // instead of taking the next train from this station.
+                          setTrainMode('number')
+                          update({ train: ride.number })
+                        }}
+                      >
+                        Blijf deze trein volgen
+                      </button>
+                    )}
+                  </p>
+                )}
+                <p className="hint">
+                  {s.trainScreen === 'auto' && 'Automatisch: het scherm dat echt in deze trein hangt: SLT, het nieuwe scherm in SNG, FLIRT en ICNG, anders OBIS. '}
+                  {ride && ride.code !== s.station && `Kies je een andere indeling, dan stap je uit in ${ride.name}. `}
+                  {trainMode === 'number'
+                    ? 'Het scherm volgt deze trein van begin tot eind (het ritnummer staat in de NS-app bij je reis). Kies "Vanaf dit station" om weer de eerstvolgende trein te nemen.'
+                    : 'Het scherm stapt in de eerstvolgende trein die hier vertrekt en rijdt mee tot het eindpunt. Daarna neemt het de volgende trein.'}
+                </p>
+              </>
+            )}
+            {!overview && !train && tracks.length === 0 && !s.track && <p className="hint">Kies eerst een station, dan verschijnen hier de sporen.</p>}
+            {!overview && !train && (tracks.length > 0 || s.track) && (
               <>
                 <TrackPicker
                   label={s.layout === 'double' ? 'Bovenste trein' : 'Spoor'}
@@ -429,8 +568,8 @@ export function InfoApp() {
           </Step>
 
           <Step n={3} title="Uiterlijk">
-            {overview ? (
-              // The overview screens have no track signs or clock next to them.
+            {overview || train ? (
+              // The overview and train screens have no track signs or clock next to them.
               <Cards
                 label="Weergave"
                 value={s.frame === 'screen' ? 'screen' : 'signs'}
@@ -453,7 +592,7 @@ export function InfoApp() {
               />
             )}
             <div className="settings-grid">
-              {!overview && s.frame !== 'screen' && (
+              {!overview && !train && s.frame !== 'screen' && (
                 <Segmented
                   label="Spoorbord"
                   value={s.side}
@@ -464,7 +603,7 @@ export function InfoApp() {
                   onChange={(side) => update({ side })}
                 />
               )}
-              {!overview && s.frame === 'board' && (
+              {!overview && !train && s.frame === 'board' && (
                 <Segmented
                   label="Klok"
                   value={s.clock}
@@ -476,7 +615,7 @@ export function InfoApp() {
                   onChange={(clock) => update({ clock })}
                 />
               )}
-              <Segmented
+              {!train && <Segmented
                 label="Kleuren"
                 value={s.theme}
                 options={[
@@ -484,7 +623,7 @@ export function InfoApp() {
                   ['light', 'Licht (klassiek)'],
                 ]}
                 onChange={(theme) => update({ theme })}
-              />
+              />}
               <Segmented
                 label="Taal"
                 value={s.lang}
@@ -513,8 +652,12 @@ export function InfoApp() {
             <h2>Voorbeeld</h2>
             <span className={`preview-summary${s.mock ? ' demo' : ''}`}>{summary}</span>
           </div>
-          <div className={`preview-frame ${s.frame}`} style={previewShape(s)}>
-            {ready ? <iframe key={query_} src={url} title="Voorbeeld" /> : <p>{overview ? 'Kies een station.' : 'Kies een station en spoor.'}</p>}
+          <div className={`preview-frame ${s.frame}`} style={previewShape(s, ride)}>
+            {ready ? (
+              <iframe key={query_} src={url} title="Voorbeeld" />
+            ) : (
+              <p>{train && trainMode === 'number' ? 'Vul een treinnummer in.' : overview || train ? 'Kies een station.' : 'Kies een station en spoor.'}</p>
+            )}
           </div>
 
           <div className="actions">

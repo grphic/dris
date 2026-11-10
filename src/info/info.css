@@ -122,6 +122,27 @@ button,
   gap: 16px;
 }
 
+/* ---------- Train number ---------- */
+
+.text-input {
+  width: 12em;
+  box-sizing: border-box;
+  font: inherit;
+  font-size: 18px;
+  padding: 11px 14px;
+  border-radius: 10px;
+  border: 2px solid var(--i-line);
+  background: var(--i-bg);
+  color: inherit;
+}
+.text-input::placeholder {
+  color: #6c76b3;
+}
+.text-input:focus {
+  outline: none;
+  border-color: var(--i-yellow);
+}
+
 /* ---------- Station search ---------- */
 
 .station-field {
@@ -573,4 +594,28 @@ kbd {
   .preview {
     position: static;
   }
+}
+
+/* The train you travel along with (in the train) */
+.ride {
+  margin: 4px 0 0;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: var(--i-line-soft);
+  border-left: 4px solid var(--i-yellow);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.ride-follow {
+  display: block;
+  margin-top: 8px;
+}
+.ride-material {
+  margin-left: 8px;
+  padding: 1px 7px;
+  border-radius: 6px;
+  background: var(--i-yellow);
+  color: var(--i-bg);
+  font-size: 0.8em;
+  font-weight: 700;
 }

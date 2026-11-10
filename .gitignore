@@ -8,3 +8,4 @@ docker/*.tar.gz
 VERSION
 ASSETS
 *.tar.gz
+*.tsbuildinfo

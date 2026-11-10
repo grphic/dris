@@ -2,10 +2,14 @@ import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 're
 import { boardSize, hasTwoSigns, overviewSize } from '../lib/board'
 import { readSettings, toQuery } from '../lib/settings'
 import { useBoardData } from '../lib/useBoardData'
+import { useTrainData } from '../lib/useTrainData'
+import type { Departure } from '../lib/types'
+import type { Settings } from '../lib/settings'
 import { Clock } from './Clock'
 import { ROWS, rowsFor, useOverviewScreens } from './Overview'
 import { Screen } from './Screen'
 import { TrackSign } from './TrackSign'
+import { ModernScreen, SltScreen, TrainHousing, TrainScreen, screenKind, trainSize } from './TrainScreen'
 
 interface Viewport {
   w: number
@@ -146,10 +150,12 @@ export function App() {
     }
   }, [])
 
-  if (!settings.station && !settings.mock) {
+  if (!settings.station && !settings.mock && !(settings.layout === 'train' && settings.train)) {
     window.location.replace(`${import.meta.env.BASE_URL}info/`)
     return null
   }
+
+  if (settings.layout === 'train') return <TrainApp settings={settings} departures={data.departures} vp={vp} />
 
   if (settings.layout === 'overview') {
     // Screens only, no track signs or clock: bare, or each in its housing.
@@ -231,6 +237,25 @@ export function App() {
         </div>
         {last}
       </div>
+    </Fit>
+  )
+}
+
+/**
+ * The screen inside the train: OBIS or the new screen (16:9) or, in an SLT, the 4:3 Sprinter screen.
+ * In its housing it keeps the shape of the real screen; bare it fills the window (at least the design size).
+ */
+function TrainApp({ settings, departures, vp }: { settings: Settings; departures: Departure[]; vp: Viewport }) {
+  const data = useTrainData(settings, departures)
+  const housing = settings.frame !== 'screen'
+  const kind = screenKind(settings.trainScreen, data.material)
+  const { width, height } = trainSize(housing, kind)
+  const props = { data, lang: settings.lang, hasSource: Boolean(settings.train || settings.station || settings.mock) }
+  const screen =
+    kind === 'slt' ? <SltScreen {...props} /> : kind === 'modern' ? <ModernScreen {...props} /> : <TrainScreen {...props} />
+  return (
+    <Fit vp={vp} minWidth={width} minHeight={height} fixed={housing}>
+      {housing ? <TrainHousing kind={kind}>{screen}</TrainHousing> : screen}
     </Fit>
   )
 }

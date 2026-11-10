@@ -84,8 +84,11 @@ function normalizeDeparture(r: RawDeparture): Departure {
   }
 }
 
-const departuresPath = (station: string, lang: 'nl' | 'en') =>
-  `/reisinformatie-api/api/v2/departures?station=${encodeURIComponent(station)}&maxJourneys=60&lang=${lang}`
+/** `station` is a station code, or "uic:<uicCode>" (the stops of a journey only have their UIC code). */
+const departuresPath = (station: string, lang: 'nl' | 'en') => {
+  const where = station.startsWith('uic:') ? `uicCode=${encodeURIComponent(station.slice(4))}` : `station=${encodeURIComponent(station)}`
+  return `/reisinformatie-api/api/v2/departures?${where}&maxJourneys=60&lang=${lang}`
+}
 
 /**
  * Departures with Dutch texts; with `english` the English messages are fetched as well and added as
@@ -161,9 +164,10 @@ export async function fetchStations(): Promise<Station[]> {
 /* ---------- Virtual Train (composition + platform letters) ---------- */
 
 interface RawVirtualTrain {
+  type?: string
   lengteInPixels: number
   rijrichting?: 'RECHTS' | 'LINKS'
-  materieeldelen: { breedte: number; bakken: unknown[] }[]
+  materieeldelen: { breedte: number; bakken: unknown[]; materieelnummer?: number }[]
   perronVoorzieningen?: { type: string; paddingLeft: number; width: number; description: string }[]
 }
 
@@ -178,4 +182,11 @@ export async function fetchComposition(number: string, station: string, signal?:
       .map((p) => ({ letter: p.description, left: p.paddingLeft, width: p.width })),
     directionRight: r.rijrichting !== 'LINKS',
   }
+}
+
+/** Rolling stock of a train at a station: type ("SLT", "VIRM", "ICM", "SNG", …) and the first unit's number. */
+export async function fetchTrainType(number: string, station: string, signal?: AbortSignal): Promise<{ type: string; unit: string } | null> {
+  const r = await get<RawVirtualTrain>(`/virtual-train-api/api/v1/trein/${encodeURIComponent(number)}/${encodeURIComponent(station)}`, signal)
+  if (!r.type) return null
+  return { type: r.type.toUpperCase(), unit: String(r.materieeldelen?.[0]?.materieelnummer ?? '') }
 }
