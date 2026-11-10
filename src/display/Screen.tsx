@@ -94,7 +94,7 @@ const END_MS = 5000 // extra pause on the last lines before jumping back to the 
  * Shows `lines` lines of text. When the text is longer it moves up one line at a time, pauses at the end
  * and jumps back to the start, like the real boards do with long via lists.
  */
-function LineScroller({ lines, className, contentKey, children }: { lines: number; className: string; contentKey: string; children: ReactNode }) {
+export function LineScroller({ lines, className, contentKey, children }: { lines: number; className: string; contentKey: string; children: ReactNode }) {
   const inner = useRef<HTMLDivElement>(null)
   const [geo, setGeo] = useState({ lh: 0, total: 0 })
   const [step, setStep] = useState(0)

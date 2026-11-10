@@ -3,7 +3,7 @@ import type { Lang } from '../lib/settings'
 import { STRINGS_NL, formatTime, useNow, useStrings, type Strings } from '../lib/text'
 import type { Departure } from '../lib/types'
 import { ProductStack } from './Product'
-import { NoDataScreen, Place, useFitName } from './Screen'
+import { LineScroller, NoDataScreen, Place, useFitName } from './Screen'
 
 /** Departures per screen on a 16:9 screen, as on the real overview screens. */
 export const ROWS = 7
@@ -36,7 +36,14 @@ function SubLine({ d, t }: { d: Departure; t: Strings }) {
   if (!d.via.length) return null
   return (
     <>
-      {t.via} {d.via.join(', ')}
+      {t.via}{' '}
+      {d.via.map((name, i) => (
+        <span key={name}>
+          {i > 0 && ', '}
+          {/* A station name never breaks over two lines when the text scrolls. */}
+          <span className="via-name">{name}</span>
+        </span>
+      ))}
     </>
   )
 }
@@ -125,9 +132,10 @@ function Row({ d, t }: { d: Departure; t: Strings }) {
         <ProductStack longName={d.productLong} operatorCode={d.operatorCode} operatorName={d.operatorName} />
       </div>
       <div className="ov-delay">{d.delayMin > 0 && `+${d.delayMin}`}</div>
-      <div className="ov-sub">
+      {/* One line; longer text moves up a line at a time, like the via list on the single-train screen. */}
+      <LineScroller className="ov-sub" lines={1} contentKey={d.id}>
         <SubLine d={d} t={t} />
-      </div>
+      </LineScroller>
     </div>
   )
 }

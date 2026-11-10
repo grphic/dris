@@ -1,3 +1,9 @@
+/* The screen is a large canvas scaled down: stop phones and tablets from enlarging the text on their own
+   (font boosting), which makes rows taller than they are and cuts off the second line. */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
 body {
   background: #000;
   overflow: hidden;
@@ -516,9 +522,16 @@ i.en {
 .ov-sub {
   min-width: 0;
   padding-right: 28px;
-  white-space: nowrap;
   overflow: hidden;
-  text-overflow: ellipsis;
+}
+.ov-dest {
+  white-space: nowrap;
+  /* The name clips itself (.ov-dest-name); clipping here as well would cut off its descenders. */
+  overflow: visible;
+}
+/* The second line wraps and scrolls (LineScroller); a station name stays in one piece. */
+.ov-sub .via-name {
+  white-space: nowrap;
 }
 .ov-row.cancelled .ov-dest {
   color: var(--struck);
@@ -551,6 +564,9 @@ i.en {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
+  /* overflow: hidden clips at the padding box: leave room for descenders (g, j, p, y), as .destination. */
+  padding-bottom: 0.14em;
+  margin-bottom: -0.14em;
 }
 /* Train number of an international train in a box with rounded corners, at the end of the line. */
 .ov-train-number {

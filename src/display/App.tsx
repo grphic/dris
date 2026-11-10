@@ -18,9 +18,24 @@ const OV_MIN_W = 1400
 function useViewport(): Viewport {
   const [vp, setVp] = useState<Viewport>({ w: window.innerWidth, h: window.innerHeight })
   useLayoutEffect(() => {
-    const update = () => setVp({ w: window.innerWidth, h: window.innerHeight })
-    window.addEventListener('resize', update)
-    return () => window.removeEventListener('resize', update)
+    const update = () =>
+      setVp((v) => (v.w === window.innerWidth && v.h === window.innerHeight ? v : { w: window.innerWidth, h: window.innerHeight }))
+    // Safari reports the size during the fullscreen animation (and sometimes while a window is being
+    // resized), so the final size can come without another resize event: measure again once it settles.
+    const timers: number[] = []
+    const settle = () => {
+      update()
+      timers.push(window.setTimeout(update, 150), window.setTimeout(update, 600))
+    }
+    window.addEventListener('resize', settle)
+    document.addEventListener('fullscreenchange', settle)
+    window.visualViewport?.addEventListener('resize', settle)
+    return () => {
+      window.removeEventListener('resize', settle)
+      document.removeEventListener('fullscreenchange', settle)
+      window.visualViewport?.removeEventListener('resize', settle)
+      timers.forEach(clearTimeout)
+    }
   }, [])
   return vp
 }
@@ -55,6 +70,17 @@ function Fit({
   )
 }
 
+// True when this screen is the preview iframe on the settings page (same origin). In any other
+// frame (e.g. a Home Assistant card, another origin) reading the parent's location throws: false.
+function inSettingsPreview(): boolean {
+  if (window.parent === window) return false
+  try {
+    return window.parent.location.pathname.startsWith(`${import.meta.env.BASE_URL}info`)
+  } catch {
+    return false
+  }
+}
+
 export function App() {
   const settings = readSettings(window.location.search)
   const data = useBoardData(settings)
@@ -86,12 +112,23 @@ export function App() {
     else delete document.documentElement.dataset.test
   }, [settings.mock])
 
-  // Double click toggles fullscreen; "i" opens the settings page with these settings.
+  // Double click / "f" toggles fullscreen; "i" opens the settings page with these settings.
+  // In the preview on the settings page, fullscreen applies to the preview frame (the settings page
+  // stays underneath) and "i" just leaves fullscreen: you already are on the settings page.
   useEffect(() => {
-    const dbl = () => (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen())
+    const dbl = () => {
+      const preview = inSettingsPreview()
+      const doc = preview ? window.parent.document : document
+      const target = preview ? window.frameElement : document.documentElement
+      if (doc.fullscreenElement) doc.exitFullscreen().catch(() => {})
+      else target?.requestFullscreen().catch(() => {})
+    }
     const key = (e: KeyboardEvent) => {
-      if (e.key === 'i') window.location.href = `${import.meta.env.BASE_URL}info/?${toQuery(settings)}`
       if (e.key === 'f') dbl()
+      if (e.key !== 'i') return
+      if (inSettingsPreview()) {
+        if (window.parent.document.fullscreenElement) window.parent.document.exitFullscreen().catch(() => {})
+      } else window.location.href = `${import.meta.env.BASE_URL}info/?${toQuery(settings)}`
     }
     const move = () => {
       document.body.classList.remove('hide-cursor')
